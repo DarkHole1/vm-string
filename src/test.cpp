@@ -27,6 +27,9 @@ int main()
     my::string1 s = "123\n";
     std::cout << s << "\n";
 
+    s = s;
+    std::cout << s << "\n";
+
     my::string1 s2 = s;
     std::cout << s << " " << s2 << "\n";
 
