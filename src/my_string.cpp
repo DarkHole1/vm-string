@@ -59,11 +59,17 @@ namespace my
             else
             {
                 auto allocated = malloc(len);
+                if (allocated == nullptr) {
+                    exit(EXIT_FAILURE);
+                }
 
                 memcpy(allocated, ptr_, len);
                 ptr = reinterpret_cast<char *>(allocated);
 
                 unique_ = reinterpret_cast<bool *>(malloc(sizeof(bool)));
+                if (unique_ == nullptr) {
+                    exit(EXIT_FAILURE);
+                }
                 *unique_ = true;
             }
         }
