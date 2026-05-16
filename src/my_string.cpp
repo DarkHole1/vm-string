@@ -1,3 +1,4 @@
+#include "my_string.hpp"
 #include <cstdlib>
 #include <cstring>
 #include <stdint.h>
@@ -5,132 +6,123 @@
 
 namespace my
 {
-    class string1
+    void string1::mark_not_unique() const
     {
-    private:
-        mutable char *ptr;
+        ptr = reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) | 1);
+    }
 
-        void mark_not_unique() const
-        {
-            ptr = reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) | 1);
-        }
+    char *string1::get_non_const()
+    {
+        return reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) & (~1));
+    }
 
-        char *get_non_const()
-        {
-            return reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) & (~1));
-        }
-
-        void free_ptr()
+    void string1::free_ptr()
+    {
+#ifdef DEBUG
+        printf("Starting check for ptr %p and bit %b\n", get(), is_unique());
+#endif
+        if (is_unique())
         {
 #ifdef DEBUG
-            printf("Starting check for ptr %p and bit %b\n", get(), unique());
+            printf("Starting deallocation\n");
 #endif
-            if (unique())
-            {
-#ifdef DEBUG
-                printf("Starting deallocation\n");
-#endif
-                free(get_non_const());
-            }
+            free(get_non_const());
         }
+    }
 
-    public:
-        string1()
-        {
+    string1::string1()
+    {
 #ifdef DEBUG
-            printf("Creating empty string\n");
+        printf("Creating empty string\n");
 #endif
+        ptr = nullptr;
+    }
+
+    string1::string1(const char *ptr) : string1(ptr, ptr == nullptr ? 0 : strlen(ptr))
+    {
+    }
+
+    string1::string1(const char *ptr_, size_t len)
+    {
+#ifdef DEBUG
+        printf("Creating by string and length\n");
+#endif
+        if (ptr_ == nullptr)
+        {
             ptr = nullptr;
         }
-
-        string1(const char *ptr) : string1(ptr, ptr == nullptr ? 0 : strlen(ptr))
+        else
         {
+            auto allocated = malloc(len);
+            memcpy(allocated, ptr_, len);
+            ptr = reinterpret_cast<char *>(allocated);
         }
+    }
 
-        string1(const char *ptr_, size_t len)
-        {
+    // Move constructor
+    string1::string1(string1 &&other) : ptr(other.ptr)
+    {
 #ifdef DEBUG
-            printf("Creating by string and length\n");
+        printf("Move constructor from %p [%b]\n", other.get(), other.is_unique());
 #endif
-            if (ptr_ == nullptr)
-            {
-                ptr = nullptr;
-            }
-            else
-            {
-                auto allocated = malloc(len);
-                memcpy(allocated, ptr_, len);
-                ptr = reinterpret_cast<char *>(allocated);
-            }
-        }
+        other.ptr = nullptr;
+    }
 
-        // Move constructor
-        string1(string1 &&other) : ptr(other.ptr)
-        {
+    // Copy constructor
+    string1::string1(const string1 &other) : ptr(other.ptr)
+    {
 #ifdef DEBUG
-            printf("Move constructor from %p [%b]\n", other.get(), other.unique());
+        printf("Copy constructor from %p [%b]\n", other.get(), other.is_unique());
 #endif
-            other.ptr = nullptr;
-        }
+        mark_not_unique();
+        other.mark_not_unique();
+    }
 
-        // Copy constructor
-        string1(const string1 &other) : ptr(other.ptr)
-        {
+    string1 &string1::operator=(string1 &&other)
+    {
 #ifdef DEBUG
-            printf("Copy constructor from %p [%b]\n", other.get(), other.unique());
+        printf("Set move from %p [%b]\n", other.get(), other.is_unique());
 #endif
-            mark_not_unique();
+        free_ptr();
+
+        ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
+    }
+
+    string1 &string1::operator=(const string1 &other)
+    {
+#ifdef DEBUG
+        printf("Set copy from %p [%b]\n", other.get(), other.is_unique());
+#endif
+        if (other.ptr != ptr)
+        {
+            free_ptr();
+
             other.mark_not_unique();
-        }
-
-        string1 &operator=(string1 &&other)
-        {
-#ifdef DEBUG
-            printf("Set move from %p [%b]\n", other.get(), other.unique());
-#endif
-            free_ptr();
-
             ptr = other.ptr;
-            other.ptr = nullptr;
-            return *this;
         }
+        return *this;
+    }
 
-        string1 &operator=(const string1 &other)
-        {
-#ifdef DEBUG
-            printf("Set copy from %p [%b]\n", other.get(), other.unique());
-#endif
-            if (other.ptr != ptr)
-            {
-                free_ptr();
+    string1::~string1()
+    {
+        free_ptr();
+    }
 
-                other.mark_not_unique();
-                ptr = other.ptr;
-            }
-            return *this;
-        }
+    const char *string1::get() const
+    {
+        return reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) & (~1));
+    }
 
-        ~string1()
-        {
-            free_ptr();
-        }
-
-        const char *get() const
-        {
-            return reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) & (~1));
-        }
-
-        bool unique() const
-        {
-            return !(reinterpret_cast<uintptr_t>(ptr) & 1);
-        }
-
-        friend std::ostream &operator<<(std::ostream &os, const string1 &p);
-    };
+    bool string1::is_unique() const
+    {
+        return !(reinterpret_cast<uintptr_t>(ptr) & 1);
+    }
 
     std::ostream &operator<<(std::ostream &os, const my::string1 &str)
     {
-        os << reinterpret_cast<const char *>(str.get()) << " [" << str.unique() << "]";
+        os << reinterpret_cast<const void *>(str.get()) << " [" << str.is_unique() << "]";
         return os;
     }
 }

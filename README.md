@@ -3,9 +3,9 @@ vm-string
 
 # Build and run
 ```bash
-g++ src/test.cpp -o test -O2
+g++ -O2 src/test.cpp src/my_string.cpp -o test
 # or
-g++ src/test.cpp -o test -O2 -D DEBUG
+g++ -O2 src/test.cpp src/my_string.cpp -o test -D DEBUG
 
 ./test
 ```

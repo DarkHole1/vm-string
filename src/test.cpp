@@ -1,7 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <random>
-#include "my_string.cpp"
+#include "my_string.hpp"
 
 const int ARRAY_SIZE = 10;
 
