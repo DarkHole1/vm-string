@@ -1,4 +1,3 @@
-#pragma once
 #include <cstdlib>
 #include <cstring>
 #include <stdint.h>
@@ -9,12 +8,16 @@ namespace my
     class string1
     {
     private:
-        char *ptr;
-        bool *unique_;
+        mutable char *ptr;
 
         void mark_not_unique() const
         {
-            *unique_ = false;
+            ptr = reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) | 1);
+        }
+
+        char *get_non_const()
+        {
+            return reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) & (~1));
         }
 
         void free_ptr()
@@ -27,8 +30,7 @@ namespace my
 #ifdef DEBUG
                 printf("Starting deallocation\n");
 #endif
-                free(ptr);
-                free(unique_);
+                free(get_non_const());
             }
         }
 
@@ -39,7 +41,6 @@ namespace my
             printf("Creating empty string\n");
 #endif
             ptr = nullptr;
-            unique_ = nullptr;
         }
 
         string1(const char *ptr) : string1(ptr, ptr == nullptr ? 0 : strlen(ptr))
@@ -54,39 +55,26 @@ namespace my
             if (ptr_ == nullptr)
             {
                 ptr = nullptr;
-                unique_ = nullptr;
             }
             else
             {
                 auto allocated = malloc(len);
-                if (allocated == nullptr) {
-                    exit(EXIT_FAILURE);
-                }
-
                 memcpy(allocated, ptr_, len);
                 ptr = reinterpret_cast<char *>(allocated);
-
-                unique_ = reinterpret_cast<bool *>(malloc(sizeof(bool)));
-                if (unique_ == nullptr) {
-                    exit(EXIT_FAILURE);
-                }
-                *unique_ = true;
             }
         }
 
         // Move constructor
-        string1(string1 &&other) : ptr(other.ptr), unique_(other.unique_)
+        string1(string1 &&other) : ptr(other.ptr)
         {
 #ifdef DEBUG
             printf("Move constructor from %p [%b]\n", other.get(), other.unique());
 #endif
             other.ptr = nullptr;
-            other.unique_ = reinterpret_cast<bool *>(malloc(sizeof(bool)));
-            *unique_ = true;
         }
 
         // Copy constructor
-        string1(const string1 &other) : ptr(other.ptr), unique_(other.unique_)
+        string1(const string1 &other) : ptr(other.ptr)
         {
 #ifdef DEBUG
             printf("Copy constructor from %p [%b]\n", other.get(), other.unique());
@@ -103,10 +91,7 @@ namespace my
             free_ptr();
 
             ptr = other.ptr;
-            unique_ = other.unique_;
             other.ptr = nullptr;
-            other.unique_ = nullptr;
-
             return *this;
         }
 
@@ -121,7 +106,6 @@ namespace my
 
                 other.mark_not_unique();
                 ptr = other.ptr;
-                unique_ = other.unique_;
             }
             return *this;
         }
@@ -133,16 +117,12 @@ namespace my
 
         const char *get() const
         {
-            return ptr;
+            return reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) & (~1));
         }
 
         bool unique() const
         {
-            if (unique_ != nullptr)
-            {
-                return *unique_;
-            }
-            return false;
+            return !(reinterpret_cast<uintptr_t>(ptr) & 1);
         }
 
         friend std::ostream &operator<<(std::ostream &os, const string1 &p);
@@ -150,7 +130,7 @@ namespace my
 
     std::ostream &operator<<(std::ostream &os, const my::string1 &str)
     {
-        os << reinterpret_cast<const void *>(str.get()) << " [" << str.unique() << "]";
+        os << reinterpret_cast<const char *>(str.get()) << " [" << str.unique() << "]";
         return os;
     }
 }
