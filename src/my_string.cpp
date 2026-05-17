@@ -1,35 +1,11 @@
 #include "my_string.hpp"
 #include <cstdlib>
 #include <cstring>
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 
 namespace my
 {
-    void string1::mark_not_unique() const
-    {
-        ptr = reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) | 1);
-    }
-
-    char *string1::get_non_const()
-    {
-        return reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) & (~1));
-    }
-
-    void string1::free_ptr()
-    {
-#ifdef DEBUG
-        printf("Starting check for ptr %p and bit %b\n", get(), is_unique());
-#endif
-        if (is_unique())
-        {
-#ifdef DEBUG
-            printf("Starting deallocation\n");
-#endif
-            free(get_non_const());
-        }
-    }
-
     string1::string1()
     {
 #ifdef DEBUG
@@ -54,6 +30,12 @@ namespace my
         else
         {
             auto allocated = malloc(len);
+            if (allocated == nullptr)
+            {
+                perror("Failed to allocate memory");
+                exit(EXIT_FAILURE);
+            }
+
             memcpy(allocated, ptr_, len);
             ptr = reinterpret_cast<char *>(allocated);
         }
@@ -108,16 +90,6 @@ namespace my
     string1::~string1()
     {
         free_ptr();
-    }
-
-    const char *string1::get() const
-    {
-        return reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(ptr) & (~1));
-    }
-
-    bool string1::is_unique() const
-    {
-        return !(reinterpret_cast<uintptr_t>(ptr) & 1);
     }
 
     std::ostream &operator<<(std::ostream &os, const my::string1 &str)
